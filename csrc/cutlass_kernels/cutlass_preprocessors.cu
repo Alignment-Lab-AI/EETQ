@@ -733,7 +733,7 @@ __global__ void quantize(int8_t* unprocessed_quantized_weight,
     //   printf("val : %f\n", val);
     if(threadIdx.x == 0)
       current_scale_ptr[blockIdx.x] = (ComputeType)(val * quant_range_scale);
-
+    __syncthreads();
     for(int i = threadIdx.x; i < num_rows; i += blockDim.x){
       const float scale = to_float(current_scale_ptr[blockIdx.x]);
       const float weight = to_float(__ldg(&current_weight[i * num_cols + blockIdx.x]));
@@ -794,7 +794,7 @@ void symmetric_quantize_launcher(int8_t*                    processed_quantized_
           printf("error4: %s\n", cudaGetErrorString(err));
         }
         quantize<<<n_blocks, n_thread>>>(device_current_quantized_weight, device_current_scales, device_current_weight, num_rows, num_cols);
-        cudaDeviceSynchronize();
+        // cudaDeviceSynchronize();
         cudaMemcpy(current_quantized_weight, device_current_quantized_weight, sizeof(int8_t) * num_cols * num_rows, cudaMemcpyDeviceToHost);
         cudaMemcpy(current_scales, device_current_scales, sizeof(ComputeType) * num_cols, cudaMemcpyDeviceToHost);
         cudaFree(device_current_weight); cudaFree(device_current_quantized_weight); cudaFree(device_current_scales);

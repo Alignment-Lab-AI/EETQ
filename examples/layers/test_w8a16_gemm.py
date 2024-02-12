@@ -29,33 +29,25 @@ if __name__ == '__main__':
     output_tensor = torch.zeros(M, N, dtype=torch.float16).cuda()
     print(torch.max(torch_weights_cpu, axis=0))
     # test quant_weights
-    # t1 = time.perf_counter()
-    # for i in range(100):
-    ref_torch_weights, processed_torch_weights, torch_weight_scales = quant_weights(torch_weights_cpu, torch.int8, True)
-    # t2 = time.perf_counter()
-    # print("time1 :", t2 - t1)
+    t1 = time.perf_counter()
+    for i in range(10):
+        ref_torch_weights, processed_torch_weights, torch_weight_scales = quant_weights(torch_weights_cpu, torch.int8, True)
+    t2 = time.perf_counter()
+    print("time1 :", t2 - t1)
     print("ref_torch_weights: ", ref_torch_weights)
     print("processed_torch_weights: ", processed_torch_weights)
     print("torch_weight_scale: ", torch_weight_scales)
-    # t1 = time.perf_counter()
-    # for i in range(100):
-    ref_torch_weights_gpu, processed_torch_weights_gpu, torch_weight_scales_gpu = quant_weights_gpu(torch_weights_cpu, torch.int8, True)
+    t1 = time.perf_counter()
+    for i in range(10):
+        ref_torch_weights_gpu, processed_torch_weights_gpu, torch_weight_scales_gpu = quant_weights_gpu(torch_weights_cpu, torch.int8, True)
     
             
-    # t2 = time.perf_counter()
-    # print("time1 :", t2 - t1)
+    t2 = time.perf_counter()
+    print("time1 :", t2 - t1)
     print("ref_torch_weights_gpu: ", ref_torch_weights_gpu)
     print("processed_torch_weights_gpu: ", processed_torch_weights_gpu)
     print("torch_weight_scale_gpu: ", torch_weight_scales_gpu)
-    print(torch.sum(processed_torch_weights_gpu - processed_torch_weights))
-    for i in range(M):
-        for j in range(K):
-            if(ref_torch_weights_gpu[i, j] != ref_torch_weights[i, j]):
-                print(i, j)
-    for i in range(M):
-        for j in range(K):
-            if(processed_torch_weights_gpu[i, j] != processed_torch_weights[i, j]):
-                print(i, j)
+    print(torch.max(processed_torch_weights_gpu - processed_torch_weights))
     # processed_torch_weights = processed_torch_weights.cuda()
     # torch_weight_scales = torch_weight_scales.cuda()
     # output = w8_a16_gemm(input, processed_torch_weights, torch_weight_scales)
