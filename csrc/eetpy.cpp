@@ -15,6 +15,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
         py::arg("origin_weight"),
         py::arg("quant_type"),
         py::arg("return_unprocessed_quantized_tensor") = false);
+  m.def("quant_weights_gpu", &symmetric_quantize_last_axis_of_tensor_gpu, "quantize weight",
+        py::arg("origin_weight"),
+        py::arg("quant_type"),
+        py::arg("return_unprocessed_quantized_tensor") = false);
   m.def("rotary_embedding_neox", &rotary_embedding_neox, "Apply GPT-NeoX style rotary embedding to query and key");
   m.def("layernorm_forward", &layernorm_forward_cuda, "LayerNorm kernel");
 }

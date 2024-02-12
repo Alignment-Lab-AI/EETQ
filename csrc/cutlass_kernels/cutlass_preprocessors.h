@@ -30,4 +30,12 @@ void symmetric_quantize(int8_t*                    processed_quantized_weight,
                         const WeightType*          input_weight_ptr,
                         const std::vector<size_t>& shape,
                         QuantType                  quant_type);
+
+template<typename ComputeType, typename WeightType>
+void symmetric_quantize_launcher(int8_t*                    processed_quantized_weight,
+                        int8_t*                    unprocessed_quantized_weight,
+                        ComputeType*               scale_ptr,
+                        const WeightType*          input_weight_ptr,
+                        const std::vector<size_t>& shape,
+                        QuantType                  quant_type);
 } // namespace fastertransformer

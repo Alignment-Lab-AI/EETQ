@@ -7,6 +7,11 @@ symmetric_quantize_last_axis_of_tensor(torch::Tensor &weight,
                                        py::object &quant_type,
                                        bool return_unprocessed_quantized_tensor);
 
+std::vector<torch::Tensor>
+symmetric_quantize_last_axis_of_tensor_gpu(torch::Tensor &weight,
+                                       py::object &quant_type,
+                                       bool return_unprocessed_quantized_tensor);
+
 torch::Tensor preprocess_weights_cuda(torch::Tensor &ori_weight,
                                       bool is_int4);
 

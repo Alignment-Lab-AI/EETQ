@@ -58,7 +58,7 @@ cutlass_sources = ["csrc/eetpy.cpp",
                    "csrc/cutlass_kernels/fpA_intB_gemm_wrapper.cu",
                    "csrc/cutlass_kernels/fpA_intB_gemm.cu",
                    "csrc/cutlass_kernels/cutlass_heuristic.cc",
-                   "csrc/cutlass_kernels/cutlass_preprocessors.cc",
+                   "csrc/cutlass_kernels/cutlass_preprocessors.cu",
                    "csrc/utils/logger.cc",
                    "csrc/utils/cuda_utils.cc"
                    ]

@@ -106,6 +106,87 @@ symmetric_quantize_last_axis_of_tensor(torch::Tensor &weight,
     return std::vector<torch::Tensor>{processed_quantized_weight, scales};
 }
 
+std::vector<torch::Tensor>
+symmetric_quantize_last_axis_of_tensor_gpu(torch::Tensor &weight,
+                                       py::object &quant_type,
+                                       bool return_unprocessed_quantized_tensor)
+{
+    CHECK_CPU(weight);
+    CHECK_CONTIGUOUS(weight);
+    TORCH_CHECK(weight.numel() != 0, "weight should not be empty tensor");
+    TORCH_CHECK(weight.dim() == 2 || weight.dim() == 3, "Invalid dim. The dim of weight should be 2 or 3");
+
+    torch::ScalarType _quant_type = torch::python::detail::py_object_to_dtype(quant_type);
+    auto _st = weight.scalar_type();
+    TORCH_CHECK(_st == torch::kFloat32 || _st == torch::kFloat16, "Invalid datatype. Weight must be FP16 or FP32");
+    TORCH_CHECK(_quant_type == torch::kInt8 || _quant_type == at::ScalarType::QUInt4x2, "Must be int4 or int8 quantization");
+    ft::QuantType ft_quant_type = ft::get_ft_quant_type(_quant_type);
+
+    const size_t num_experts = weight.dim() == 2 ? 1 : weight.size(0);
+    const size_t num_rows    = weight.size(-2);
+    const size_t num_cols    = weight.size(-1);
+
+    const size_t bits_in_type      = ft::get_bits_in_quant_type(ft_quant_type);
+    const size_t bytes_per_out_col = num_cols * bits_in_type / 8;
+
+    const size_t input_mat_size     = num_rows * num_cols;
+    const size_t quantized_mat_size = num_rows * bytes_per_out_col;
+
+    std::vector<long int> quantized_weight_shape;
+    std::vector<long int> scale_shape;
+    if (weight.dim() == 2) {
+        quantized_weight_shape = {long(num_rows), long(bytes_per_out_col)};
+        scale_shape            = {long(num_cols)};
+    }
+    else if (weight.dim() == 3) {
+        quantized_weight_shape = {long(num_experts), long(num_rows), long(bytes_per_out_col)};
+        scale_shape            = {long(num_experts), long(num_cols)};
+    }
+    else {
+        TORCH_CHECK(false, "Invalid weight dimension. Weight must have dim 2 or 3");
+    }
+
+    torch::Tensor unprocessed_quantized_weight =
+        torch::empty(quantized_weight_shape, torch::dtype(torch::kInt8).device(torch::kCPU).requires_grad(false));
+
+    torch::Tensor processed_quantized_weight = torch::empty_like(unprocessed_quantized_weight);
+
+    torch::Tensor scales = torch::empty(scale_shape, torch::dtype(weight.dtype()).device(torch::kCPU).requires_grad(false));
+
+    int8_t *unprocessed_quantized_weight_ptr = reinterpret_cast<int8_t *>(unprocessed_quantized_weight.data_ptr());
+    int8_t *processed_quantized_weight_ptr = reinterpret_cast<int8_t *>(processed_quantized_weight.data_ptr());
+
+    if (weight.scalar_type() == at::ScalarType::Float)
+    {
+        ft::symmetric_quantize_launcher<float, float>(processed_quantized_weight_ptr,
+                                             unprocessed_quantized_weight_ptr,
+                                             reinterpret_cast<float *>(scales.data_ptr()),
+                                             reinterpret_cast<const float *>(weight.data_ptr()),
+                                             {num_rows, num_cols},
+                                             ft_quant_type);
+    }
+    else if (weight.scalar_type() == at::ScalarType::Half)
+    {
+        ft::symmetric_quantize_launcher<half, half>(processed_quantized_weight_ptr,
+                                           unprocessed_quantized_weight_ptr,
+                                           reinterpret_cast<half *>(scales.data_ptr()),
+                                           reinterpret_cast<const half *>(weight.data_ptr()),
+                                           {num_rows, num_cols},
+                                           ft_quant_type);
+    }
+    else
+    {
+        TORCH_CHECK(false, "Invalid data type. Weight must be FP32/FP16");
+    }
+
+    if (return_unprocessed_quantized_tensor)
+    {
+        return std::vector<torch::Tensor>{unprocessed_quantized_weight, processed_quantized_weight, scales};
+    }
+
+    return std::vector<torch::Tensor>{processed_quantized_weight, scales};
+}
+
 torch::Tensor preprocess_weights_cuda(torch::Tensor &origin_weight,
                                       bool is_int4)
 {
